@@ -35,6 +35,14 @@ else
     if mon then display = mon end
 end
 
+-- save original palette
+local original_palette = {}
+if display.getPaletteColour then
+    for i = 0, 15 do
+        original_palette[i] = { display.getPaletteColour(2 ^ i) }
+    end
+end
+
 -- max resolution on monitor
 if display ~= term and display.setTextScale then
     display.setTextScale(0.5)
@@ -66,14 +74,17 @@ local function fetch(url)
     for frame in (data .. "\n---\n"):gmatch("(.-)\n%-%-%-\n") do
         local rows = {}
         local frame_delay = 0.1
+        local palette = nil
         for row in (frame .. "\n"):gmatch("([^\n]*)\n") do
             if row:sub(1,6) == "DELAY:" then
                 frame_delay = tonumber(row:sub(7)) or 0.1
+            elseif row:sub(1,8) == "PALETTE:" then
+                palette = row:sub(9)
             elseif #row > 0 then
                 rows[#rows+1] = row
             end
         end
-        if #rows > 0 then frames[#frames+1] = {delay=frame_delay, rows=rows} end
+        if #rows > 0 then frames[#frames+1] = {delay=frame_delay, palette=palette, rows=rows} end
     end
     return #frames > 0 and frames or nil, "no frames decoded"
 end
@@ -135,6 +146,16 @@ local function play()
             local prev_rows = nil
             while running do
                 local frame = frames[fi]
+                if frame.palette and display.setPaletteColor then
+                    local idx = 0
+                    for color_str in (frame.palette .. ";"):gmatch("(.-);") do
+                        local r, g, b = color_str:match("(%d+),(%d+),(%d+)")
+                        if r and g and b then
+                            display.setPaletteColor(2 ^ idx, tonumber(r)/255, tonumber(g)/255, tonumber(b)/255)
+                            idx = idx + 1
+                        end
+                    end
+                end
                 draw(display, frame.rows, prev_rows)
                 prev_rows = frame.rows
                 if is_gif then
@@ -171,6 +192,11 @@ while true do
     if ev == "_imgplay_end" then break end
 end
 
+if display.setPaletteColor and original_palette[0] then
+    for i = 0, 15 do
+        display.setPaletteColor(2 ^ i, original_palette[i][1], original_palette[i][2], original_palette[i][3])
+    end
+end
 display.setBackgroundColor(colors.black)
 display.clear()
 term.setCursorBlink(false)

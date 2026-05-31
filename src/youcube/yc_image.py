@@ -90,16 +90,72 @@ def _fetch(url: str, max_redirects: int = 5) -> bytes:
     raise ValueError("too many redirects")
 
 
-def _nearest(r: int, g: int, b: int) -> int:
+def _kmeans(pixels: list, k: int = 16, max_iter: int = 6) -> list:
+    if not pixels:
+        return CC_COLORS.copy()
+    
+    # Simple deterministic initialization: pick spaced-out samples
+    step = max(1, len(pixels) // k)
+    centroids = [pixels[i * step] for i in range(min(k, len(pixels)))]
+    while len(centroids) < k:
+        centroids.append((0, 0, 0))
+        
+    for _ in range(max_iter):
+        clusters = [[] for _ in range(k)]
+        for r, g, b in pixels:
+            best_idx = 0
+            best_d = float('inf')
+            for i, (cr, cg, cb) in enumerate(centroids):
+                d = (r - cr)**2 + (g - cg)**2 + (b - cb)**2
+                if d < best_d:
+                    best_d = d
+                    best_idx = i
+            clusters[best_idx].append((r, g, b))
+            
+        new_centroids = []
+        for i in range(k):
+            cluster = clusters[i]
+            if cluster:
+                n = len(cluster)
+                new_centroids.append((
+                    int(sum(p[0] for p in cluster) / n),
+                    int(sum(p[1] for p in cluster) / n),
+                    int(sum(p[2] for p in cluster) / n)
+                ))
+            else:
+                new_centroids.append(centroids[i])
+        centroids = new_centroids
+        
+    return centroids
+
+
+def _generate_palette(raw_bytes: bytes, num_colors: int = 16) -> list:
+    total_pixels = len(raw_bytes) // 3
+    if total_pixels == 0:
+        return CC_COLORS.copy()
+    
+    # Sample up to 2000 pixels randomly/evenly across the image/GIF to keep it fast
+    sample_size = min(2000, total_pixels)
+    sampled_pixels = []
+    step = max(1, total_pixels // sample_size)
+    for i in range(0, sample_size):
+        idx = (i * step) * 3
+        if idx + 2 < len(raw_bytes):
+            sampled_pixels.append((raw_bytes[idx], raw_bytes[idx+1], raw_bytes[idx+2]))
+            
+    return _kmeans(sampled_pixels, num_colors)
+
+
+def _nearest(r: int, g: int, b: int, palette: list) -> int:
     best, best_d = 0, float("inf")
-    for i, (cr, cg, cb) in enumerate(CC_COLORS):
+    for i, (cr, cg, cb) in enumerate(palette):
         d = (r - cr) ** 2 + (g - cg) ** 2 + (b - cb) ** 2
         if d < best_d:
             best_d, best = d, i
     return best
 
 
-def _raw_to_nfp(raw: bytes, width: int, height: int) -> str:
+def _raw_to_nfp(raw: bytes, width: int, height: int, palette: list) -> str:
     # Convert to float pixel grid for dithering
     pixels = []
     for y in range(height):
@@ -118,9 +174,9 @@ def _raw_to_nfp(raw: bytes, width: int, height: int) -> str:
             r = max(0, min(255, r))
             g = max(0, min(255, g))
             b = max(0, min(255, b))
-            idx = _nearest(int(r), int(g), int(b))
+            idx = _nearest(int(r), int(g), int(b), palette)
             row_chars.append(HEX[idx])
-            cr, cg, cb = CC_COLORS[idx]
+            cr, cg, cb = palette[idx]
             er, eg, eb = r - cr, g - cg, b - cb
             for dx, dy, w in ((1,0,7/16),(-1,1,3/16),(0,1,5/16),(1,1,1/16)):
                 nx, ny = x + dx, y + dy
@@ -164,16 +220,24 @@ def convert_image(url: str, width: int, height: int) -> List[str]:
     raw = result.stdout
     if not raw:
         raise ValueError("unsupported format")
+    
+    # Generate optimal custom palette for the entire image/GIF
+    palette = _generate_palette(raw, 16)
+    
     frame_size = width * height * 3
     nfp_frames = [
-        _raw_to_nfp(raw[i: i + frame_size], width, height)
+        _raw_to_nfp(raw[i: i + frame_size], width, height, palette)
         for i in range(0, len(raw), frame_size)
         if len(raw[i: i + frame_size]) == frame_size
     ]
     if not nfp_frames:
         raise ValueError("no frames decoded")
+    
+    # Format palette string: "r0,g0,b0;r1,g1,b1;..."
+    palette_str = ";".join(f"{r},{g},{b}" for r, g, b in palette)
+    
     frames = []
     for i, nfp in enumerate(nfp_frames):
         delay = durations[i] if i < len(durations) and durations[i] > 0 else 0.1
-        frames.append(f"DELAY:{delay:.4f}\n{nfp}")
+        frames.append(f"DELAY:{delay:.4f}\nPALETTE:{palette_str}\n{nfp}")
     return frames
