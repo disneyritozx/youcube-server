@@ -520,7 +520,10 @@ def main() -> None:
     host = getenv("HOST", "127.0.0.1")
     fast = getenv("ENABLE_FAST", "").lower() == "true"
 
-    app.run(host=host, port=port, fast=fast, access_log=True)
+    if fast:
+        app.run(host=host, port=port, fast=True, access_log=True)
+    else:
+        app.run(host=host, port=port, single_process=True, access_log=True)
 
 
 if __name__ == "__main__":
