@@ -392,8 +392,11 @@ async def image_route(request: Request):
             convert_image, url, width, height
         )
         return text("---\n".join(frames))
+    except ValueError as exc:
+        return text(str(exc), status=400)
     except Exception as exc:
-        return text(str(exc), status=500)
+        logger.warning("image conversion failed: %s", exc)
+        return text("conversion failed", status=500)
 
 
 @app.route("/dfpwm/<media_id:str>/<chunkindex:int>")
