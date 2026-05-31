@@ -391,7 +391,7 @@ async def image_route(request: Request):
         frames = await run_function_in_thread_from_async_function(
             convert_image, url, width, height
         )
-        return text("---\n".join(frames))
+        return text("\n---\n".join(frames))
     except ValueError as exc:
         return text(str(exc), status=400)
     except Exception as exc:
