@@ -44,6 +44,7 @@ Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these var
 | `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
 | `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
 | `SANJUUNI_FPS` | `10` | No - output FPS before Sanjuuni conversion; use `0` to disable |
+| `VIDEO_FRAMES_AT_ONCE` | `1` | No - 32vid frames per websocket message; keep `1` for ComputerCraft limits |
 
 To generate `YT_COOKIES_B64`, export a slim `youtube.com` cookies.txt from your browser and run:
 
@@ -98,6 +99,7 @@ Environment variables you can use to configure the server:
 | `LOGLEVEL`                    | `DEBUG`    | Python Log level of the main logger                                                                                |
 | `DISABLE_OPENCL`              | `False`    | Disables sanjuuni GPU acceleration                                                                                 |
 | `SANJUUNI_FPS`                | `10`       | Output FPS before Sanjuuni conversion. Lower is faster; `0` disables FPS reduction.                                |
+| `VIDEO_FRAMES_AT_ONCE`        | `1`        | Number of 32vid frames per websocket response. Higher is faster but can exceed ComputerCraft websocket limits.    |
 | `NO_FAST`                     | `False`    | Disable Sanic worker processes maximization                                                                        |
 | `SPOTIPY_CLIENT_ID`           |            | The Client ID from your [spotify application]                                                                      |
 | `SPOTIPY_CLIENT_SECRET`       |            | The Client Secret from your [spotify application]                                                                  |

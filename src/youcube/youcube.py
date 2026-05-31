@@ -65,7 +65,15 @@ and that would also slow everything down! [CHUNK_SIZE * 1]
 CHUNKS_AT_ONCE = CHUNK_SIZE * 256
 
 
-FRAMES_AT_ONCE = 10
+def get_video_frames_at_once() -> int:
+    try:
+        frames = int(getenv("VIDEO_FRAMES_AT_ONCE", "1"))
+    except ValueError:
+        return 1
+    return max(1, min(frames, 10))
+
+
+FRAMES_AT_ONCE = get_video_frames_at_once()
 
 # pylint settings
 # pylint: disable=pointless-string-statement
