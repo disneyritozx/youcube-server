@@ -100,13 +100,35 @@ def _nearest(r: int, g: int, b: int) -> int:
 
 
 def _raw_to_nfp(raw: bytes, width: int, height: int) -> str:
-    lines = []
+    # Convert to float pixel grid for dithering
+    pixels = []
     for y in range(height):
         row = []
         for x in range(width):
             o = (y * width + x) * 3
-            row.append(HEX[_nearest(raw[o], raw[o + 1], raw[o + 2])])
-        lines.append("".join(row))
+            row.append([float(raw[o]), float(raw[o+1]), float(raw[o+2])])
+        pixels.append(row)
+
+    # Floyd-Steinberg dithering
+    lines = []
+    for y in range(height):
+        row_chars = []
+        for x in range(width):
+            r, g, b = pixels[y][x]
+            r = max(0, min(255, r))
+            g = max(0, min(255, g))
+            b = max(0, min(255, b))
+            idx = _nearest(int(r), int(g), int(b))
+            row_chars.append(HEX[idx])
+            cr, cg, cb = CC_COLORS[idx]
+            er, eg, eb = r - cr, g - cg, b - cb
+            for dx, dy, w in ((1,0,7/16),(-1,1,3/16),(0,1,5/16),(1,1,1/16)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < width and 0 <= ny < height:
+                    pixels[ny][nx][0] += er * w
+                    pixels[ny][nx][1] += eg * w
+                    pixels[ny][nx][2] += eb * w
+        lines.append("".join(row_chars))
     return "\n".join(lines)
 
 

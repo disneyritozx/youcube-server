@@ -7,9 +7,6 @@
 --   --loop       repeat slideshow forever until Q
 --   --monitor S  use monitor on side S (default: auto-detect)
 
--- half-block char: upper half = fg color, lower half = bg color → 2x vertical res
-local HALF = "\xe2\x96\x80"
-
 local args, urls, fps, delay, loop_slides, mon_side = {...}, {}, 10, 5, false, nil
 
 local i = 1
@@ -45,7 +42,7 @@ end
 
 local dw, dh = display.getSize()
 -- half-block: each char row covers 2 pixel rows
-local px_w, px_h = dw, dh * 2
+local px_w, px_h = dw, dh
 
 local server = settings.get("youcube.server") or "wss://youcube-server-production.up.railway.app"
 local http_server = server:gsub("^wss://", "https://"):gsub("^ws://", "http://")
@@ -116,23 +113,15 @@ end
 print("Press Q to stop.")
 sleep(1.5)
 
--- half-block draw: pairs pixel rows → one char row each
 local function draw(surface, frame)
-    for cy = 1, dh do
-        local top_row = frame[cy*2 - 1] or ""
-        local bot_row = frame[cy*2]     or ""
-        for cx = 1, dw do
-            local tc = color_map[top_row:sub(cx,cx)] or colors.black
-            local bc = color_map[bot_row:sub(cx,cx)]  or colors.black
-            surface.setCursorPos(cx, cy)
-            if tc == bc then
-                -- same color: solid block, no text color needed
-                surface.setBackgroundColor(tc)
+    for y, row in ipairs(frame) do
+        if y > dh then break end
+        for x = 1, math.min(#row, dw) do
+            local c = color_map[row:sub(x,x)]
+            if c then
+                surface.setCursorPos(x, y)
+                surface.setBackgroundColor(c)
                 surface.write(" ")
-            else
-                surface.setTextColor(tc)
-                surface.setBackgroundColor(bc)
-                surface.write(HALF)
             end
         end
     end
