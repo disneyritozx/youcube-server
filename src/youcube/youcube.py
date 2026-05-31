@@ -43,6 +43,7 @@ from spotipy.client import Spotify
 # local modules
 from yc_colours import RESET, Foreground
 from yc_download import DATA_FOLDER, FFMPEG_PATH, SANJUUNI_PATH, download
+from yc_image import convert_image
 from yc_logging import NO_COLOR, setup_logging
 from yc_magic import run_function_in_thread_from_async_function
 from yc_spotify import SpotifyURLProcessor
@@ -377,6 +378,22 @@ async def main_start(app: Sanic):
         logger.info("Spotipy Enabled")
     else:
         logger.info("Spotipy Disabled")
+
+
+@app.route("/image")
+async def image_route(request: Request):
+    url = request.args.get("url")
+    if not url:
+        return text("missing url", status=400)
+    width = min(int(request.args.get("width", 51)), 328)
+    height = min(int(request.args.get("height", 19)), 243)
+    try:
+        frames = await run_function_in_thread_from_async_function(
+            convert_image, url, width, height
+        )
+        return text("---\n".join(frames))
+    except Exception as exc:
+        return text(str(exc), status=500)
 
 
 @app.route("/dfpwm/<media_id:str>/<chunkindex:int>")
