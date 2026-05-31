@@ -18,17 +18,18 @@ HEX = "0123456789abcdef"
 
 MAX_DOWNLOAD = 50 * 1024 * 1024  # 50 MB
 
-_BLOCKED = (
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("0.0.0.0/8"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-    ipaddress.ip_network("fe80::/10"),
-)
+def _is_blocked(addr: ipaddress._BaseAddress) -> bool:
+    # Normalize IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1) before checking
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped is not None:
+        addr = addr.ipv4_mapped
+    return (
+        addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_reserved
+        or addr.is_unspecified
+    )
 
 
 def validate_url(url: str) -> None:
@@ -45,7 +46,7 @@ def validate_url(url: str) -> None:
         raise ValueError("could not resolve hostname")
     for result in results:
         addr = ipaddress.ip_address(result[4][0])
-        if any(addr in net for net in _BLOCKED):
+        if _is_blocked(addr):
             raise ValueError("URL resolves to a private address")
 
 
