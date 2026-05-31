@@ -6,10 +6,12 @@ Download Functionality of YC
 """
 
 # Built-in modules
+import base64
+import atexit
 from asyncio import run_coroutine_threadsafe
-from os import getenv, listdir
+from os import getenv, listdir, unlink
 from os.path import abspath, dirname, join
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 # Local modules
 from yc_colours import RESET, Foreground
@@ -48,6 +50,19 @@ DATA_FOLDER = join(dirname(abspath(__file__)), "data")
 FFMPEG_PATH = getenv("FFMPEG_PATH", "ffmpeg")
 SANJUUNI_PATH = getenv("SANJUUNI_PATH", "sanjuuni")
 DISABLE_OPENCL = bool(getenv("DISABLE_OPENCL"))
+
+# Write YouTube cookies from env var to a temp file for yt-dlp
+_cookies_file = None
+_cookies_b64 = getenv("YT_COOKIES_B64")
+if _cookies_b64:
+    try:
+        _tmp = NamedTemporaryFile(mode="wb", suffix=".txt", delete=False, prefix="yc_cookies_")
+        _tmp.write(base64.b64decode(_cookies_b64))
+        _tmp.close()
+        _cookies_file = _tmp.name
+        atexit.register(unlink, _cookies_file)
+    except Exception as _e:
+        logger.warning("Failed to load YT_COOKIES_B64: %s", _e)
 
 
 def download_video(
@@ -188,6 +203,8 @@ def download(
             "progress_hooks": [my_hook],
             "logger": YTDLPLogger(),
         }
+        if _cookies_file:
+            yt_dl_options["cookiefile"] = _cookies_file
 
         yt_dl = YoutubeDL(yt_dl_options)
 
