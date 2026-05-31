@@ -523,7 +523,7 @@ def main() -> None:
     """
     port = int(getenv("PORT", "5000"))
     host = getenv("HOST", "127.0.0.1")
-    fast = not getenv("NO_FAST")
+    fast = getenv("ENABLE_FAST", "").lower() == "true"
 
     app.run(host=host, port=port, fast=fast, access_log=True)
 

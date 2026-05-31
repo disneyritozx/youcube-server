@@ -19,7 +19,7 @@ In your Railway project → **Variables** tab, add:
 
 | Variable | Value | Required |
 |----------|-------|----------|
-| `NO_FAST` | `true` | Yes — PyPy crashes with multiple workers |
+| `NO_FAST` | `true` | Legacy — safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes — makes server accessible externally |
 | `YT_COOKIES_B64` | *(see below)* | Yes — bypasses YouTube bot detection |
 | `SANJUUNI_FPS` | `10` | No — lowers conversion time; use `0` to disable |
@@ -107,6 +107,6 @@ GIFs use native per-frame timing automatically. Press **Q** to stop.
 
 **Audio only, no video** — requires sanjuuni (already in the Docker image). Make sure an Advanced Monitor is connected.
 
-**Server not responding** — check Railway logs. `NO_FAST=true` must be set or PyPy will crash on startup.
+**Server not responding** — check Railway logs. Sanic fast mode must stay disabled on Railway/PyPy.
 
 **imgplay shows static image for GIF** — update imgplay: `rm imgplay && wget ... imgplay` (old version had a frame separator bug, fixed in current build).

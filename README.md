@@ -40,7 +40,7 @@ Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these var
 
 | Variable | Value | Required |
 | -------- | ----- | -------- |
-| `NO_FAST` | `true` | Yes - PyPy crashes with multiple workers |
+| `NO_FAST` | `true` | Legacy - safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
 | `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
 | `SANJUUNI_FPS` | `10` | No - output FPS before Sanjuuni conversion; use `0` to disable |
@@ -103,7 +103,8 @@ Environment variables you can use to configure the server:
 | `DISABLE_OPENCL`              | `False`    | Disables sanjuuni GPU acceleration                                                                                 |
 | `SANJUUNI_FPS`                | `10`       | Output FPS before Sanjuuni conversion. Lower is faster; `0` disables FPS reduction.                                |
 | `VIDEO_FRAMES_AT_ONCE`        | `1`        | Number of 32vid frames per websocket response. Higher is faster but can exceed ComputerCraft websocket limits.    |
-| `NO_FAST`                     | `False`    | Disable Sanic worker processes maximization                                                                        |
+| `ENABLE_FAST`                 | `False`    | Enable Sanic fast mode. Leave disabled on Railway/PyPy.                                                            |
+| `NO_FAST`                     | `False`    | Legacy setting; safe non-fast mode is now the default.                                                             |
 | `SPOTIPY_CLIENT_ID`           |            | The Client ID from your [spotify application]                                                                      |
 | `SPOTIPY_CLIENT_SECRET`       |            | The Client Secret from your [spotify application]                                                                  |
 | `DATA_CACHE_CLEANUP_INTERVAL` | `300`      | Time interval (in seconds) for the data cache cleaner to wait before checking for outdated cache entries.          |
