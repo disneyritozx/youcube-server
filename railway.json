@@ -5,7 +5,6 @@
     "dockerfilePath": "src/Dockerfile"
   },
   "deploy": {
-    "startCommand": "python src/youcube/youcube.py",
     "restartPolicyType": "ON_FAILURE"
   }
 }
