@@ -210,6 +210,7 @@ def download(
             "default_search": "auto",
             "restrictfilenames": True,
             "extract_flat": "in_playlist",
+            "noplaylist": True,
             "progress_hooks": [my_hook],
             "logger": YTDLPLogger(),
         }
