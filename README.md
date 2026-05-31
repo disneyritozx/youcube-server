@@ -43,7 +43,7 @@ Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these var
 | `NO_FAST` | `true` | Legacy - safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
 | `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
-| `SANJUUNI_FPS` | `10` | No - output FPS before Sanjuuni conversion; use `0` to disable |
+| `SANJUUNI_FPS` | `24` | No - output FPS before Sanjuuni conversion; use `0` to disable |
 | `VIDEO_FRAMES_AT_ONCE` | `1` | No - 32vid frames per websocket message; keep `1` for ComputerCraft limits |
 
 To generate `YT_COOKIES_B64`, export a slim `youtube.com` cookies.txt from your browser and run:
@@ -98,17 +98,20 @@ Environment variables you can use to configure the server:
 | `PORT`                        | `5000`     | The port where the web server should run on                                                                        |
 | `FFMPEG_PATH`                 | `ffmpeg`   | Path to the FFmpeg executable                                                                                      |
 | `SANJUUNI_PATH`               | `sanjuuni` | Path to the Sanjuuni executable                                                                                    |
+| `YT_COOKIES_B64`              |            | Base64 encoded YouTube `cookies.txt` passed to yt-dlp.                                                             |
 | `NO_COLOR`                    | `False`    | Disable colored output                                                                                             |
 | `LOGLEVEL`                    | `DEBUG`    | Python Log level of the main logger                                                                                |
 | `DISABLE_OPENCL`              | `False`    | Disables sanjuuni GPU acceleration                                                                                 |
-| `SANJUUNI_FPS`                | `10`       | Output FPS before Sanjuuni conversion. Lower is faster; `0` disables FPS reduction.                                |
-| `VIDEO_FRAMES_AT_ONCE`        | `1`        | Number of 32vid frames per websocket response. Higher is faster but can exceed ComputerCraft websocket limits.    |
+| `SANJUUNI_FPS`                | `24`       | Output FPS before Sanjuuni conversion. Clamped to `0`-`30`; `0` disables FPS reduction.                            |
+| `VIDEO_FRAMES_AT_ONCE`        | `1`        | Number of 32vid frames per websocket response. Clamped to `1`-`10`; keep `1` for ComputerCraft limits.            |
 | `ENABLE_FAST`                 | `False`    | Enable Sanic fast mode. Leave disabled on Railway/PyPy.                                                            |
 | `NO_FAST`                     | `False`    | Legacy setting; safe non-fast mode is now the default.                                                             |
+| `SANIC_NO_UVLOOP`             | `False`    | Disables Sanic uvloop integration when set. Enabled by the Docker image for Alpine/PyPy compatibility.             |
 | `SPOTIPY_CLIENT_ID`           |            | The Client ID from your [spotify application]                                                                      |
 | `SPOTIPY_CLIENT_SECRET`       |            | The Client Secret from your [spotify application]                                                                  |
 | `DATA_CACHE_CLEANUP_INTERVAL` | `300`      | Time interval (in seconds) for the data cache cleaner to wait before checking for outdated cache entries.          |
 | `DATA_CACHE_CLEANUP_AFTER`    | `3600`     | Time threshold (in seconds) for considering a cache entry outdated. Cache entries older than this will be removed. |
+| `XDG_CACHE_HOME`              | `.yt-dlp-cache` | yt-dlp cache directory inside the Docker container.                                                           |
 
 And [Sanic Builtin values].
 

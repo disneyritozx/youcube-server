@@ -22,7 +22,7 @@ In your Railway project → **Variables** tab, add:
 | `NO_FAST` | `true` | Legacy — safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes — makes server accessible externally |
 | `YT_COOKIES_B64` | *(see below)* | Yes — bypasses YouTube bot detection |
-| `SANJUUNI_FPS` | `10` | No — lowers conversion time; use `0` to disable |
+| `SANJUUNI_FPS` | `24` | No — lowers conversion time; use `0` to disable |
 | `VIDEO_FRAMES_AT_ONCE` | `1` | No — keep `1` to avoid ComputerCraft websocket message limits |
 
 ### Getting YouTube cookies

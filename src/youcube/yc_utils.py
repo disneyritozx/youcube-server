@@ -67,9 +67,9 @@ DATA_FOLDER = join(dirname(abspath(__file__)), "data")
 
 def _get_sanjuuni_fps() -> int:
     try:
-        fps = int(getenv("SANJUUNI_FPS", "10"))
+        fps = int(getenv("SANJUUNI_FPS", "24"))
     except ValueError:
-        return 10
+        return 24
     return max(0, min(fps, 30))
 
 
