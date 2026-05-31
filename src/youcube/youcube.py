@@ -10,7 +10,6 @@ from asyncio import get_event_loop
 from asyncio import sleep as asyncio_sleep
 from base64 import b64encode
 from datetime import datetime
-from multiprocessing import Manager
 from os import getenv, remove
 from os.path import exists, join
 from shutil import which
@@ -370,42 +369,35 @@ DATA_CACHE_CLEANUP_INTERVAL = int(getenv("DATA_CACHE_CLEANUP_INTERVAL", "300"))
 DATA_CACHE_CLEANUP_AFTER = int(getenv("DATA_CACHE_CLEANUP_AFTER", "3600"))
 
 
-def data_cache_cleaner(data: dict):
+async def data_cache_cleaner(app: Sanic):
     """
     Checks for outdated cache entries every DATA_CACHE_CLEANUP_INTERVAL (default 300) Seconds and
     deletes them if they have not been used for DATA_CACHE_CLEANUP_AFTER (default 3600) Seconds.
     """
     try:
         while True:
-            sleep(DATA_CACHE_CLEANUP_INTERVAL)
-            for file_name, last_used in data.items():
-                if (
-                    datetime.now() - last_used
-                ).total_seconds() > DATA_CACHE_CLEANUP_AFTER:
+            await asyncio_sleep(DATA_CACHE_CLEANUP_INTERVAL)
+            # Create a copy of keys to avoid RuntimeError: dictionary changed size during iteration
+            for file_name in list(app.shared_ctx.data.keys()):
+                last_used = app.shared_ctx.data.get(file_name)
+                if last_used and (datetime.now() - last_used).total_seconds() > DATA_CACHE_CLEANUP_AFTER:
                     file_path = join(DATA_FOLDER, file_name)
                     if exists(file_path):
                         remove(file_path)
                         logger.debug('Deleted "%s"', file_name)
-                    data.pop(file_name)
-
-    except KeyboardInterrupt:
-        pass
+                    app.shared_ctx.data.pop(file_name, None)
+    except Exception as exc:
+        logger.exception("Error in data_cache_cleaner: %s", exc)
 
 
 # pylint: disable=redefined-outer-name
-@app.main_process_ready
-async def ready(app: Sanic, _):
+@app.before_server_start
+async def before_start(app: Sanic, loop):
     """See https://sanic.dev/en/guide/basics/listeners.html"""
+    app.shared_ctx.data = {}
+
     if DATA_CACHE_CLEANUP_INTERVAL > 0 and DATA_CACHE_CLEANUP_AFTER > 0:
-        app.manager.manage(
-            "Data-Cache-Cleaner", data_cache_cleaner, {"data": app.shared_ctx.data}
-        )
-
-
-@app.main_process_start
-async def main_start(app: Sanic):
-    """See https://sanic.dev/en/guide/basics/listeners.html"""
-    app.shared_ctx.data = Manager().dict()
+        app.add_task(data_cache_cleaner)
 
     if which(FFMPEG_PATH) is None:
         logger.warning("FFmpeg not found.")
