@@ -39,8 +39,10 @@ def run_with_thread_save_asyncio_event_with_return_value(
     Runs a function and calls a ThreadSaveAsyncioEventWithReturnValue
     This function is meant to run in a thread
     """
-    result = func(*args)
-    event.result = result
+    try:
+        event.result = func(*args)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        event.result = exc
     event.set()
 
 
@@ -56,6 +58,8 @@ async def run_function_in_thread_from_async_function(
         args=(event, func, *args),
     ).start()
     await event.wait()
+    if isinstance(event.result, Exception):
+        raise event.result
     return event.result
 
 

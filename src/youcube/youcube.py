@@ -243,15 +243,18 @@ class Actions:
         if error := assert_resp("url", url, str):
             return error
         # TODO: assert_resp width and height
-        out, files = await run_function_in_thread_from_async_function(
-            download,
-            url,
-            resp,
-            loop,
-            message.get("width"),
-            message.get("height"),
-            spotify_url_processor,
-        )
+        try:
+            out, files = await run_function_in_thread_from_async_function(
+                download,
+                url,
+                resp,
+                loop,
+                message.get("width"),
+                message.get("height"),
+                spotify_url_processor,
+            )
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return {"action": "error", "message": str(exc)}
         for file in files:
             request.app.shared_ctx.data[file] = datetime.now()
         return out
