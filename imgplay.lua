@@ -164,11 +164,15 @@ parallel.waitForAny(
     end
 )
 
+-- drain pending char/key events so shell doesn't echo 'q'
+os.queueEvent("_imgplay_end")
+while true do
+    local ev = os.pullEvent()
+    if ev == "_imgplay_end" then break end
+end
+
 display.setBackgroundColor(colors.black)
 display.clear()
-if display ~= term then
-    term.setCursorPos(1,1)
-    print("Done.")
-else
-    term.setCursorPos(1,1)
-end
+term.setCursorBlink(false)
+term.clear()
+term.setCursorPos(1,1)
