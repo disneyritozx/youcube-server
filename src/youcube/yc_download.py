@@ -54,6 +54,10 @@ DATA_FOLDER = join(dirname(abspath(__file__)), "data")
 FFMPEG_PATH = getenv("FFMPEG_PATH", "ffmpeg")
 SANJUUNI_PATH = getenv("SANJUUNI_PATH", "sanjuuni")
 DISABLE_OPENCL = bool(getenv("DISABLE_OPENCL"))
+BGUTIL_POT_PROVIDER_HOME = getenv(
+    "BGUTIL_POT_PROVIDER_HOME",
+    "/opt/bgutil-ytdlp-pot-provider/server",
+)
 
 VIDEO_FORMAT = (
     "worst[ext=mp4][vcodec!=none][acodec!=none]/"
@@ -274,6 +278,12 @@ def download(
             "merge_output_format": "mp4",
             "outtmpl": join(temp_dir, "%(id)s.%(ext)s"),
             "default_search": "auto",
+            "extractor_args": {
+                "youtube": {"player_client": ["mweb"]},
+                "youtubepot-bgutilscript": {
+                    "server_home": [BGUTIL_POT_PROVIDER_HOME]
+                },
+            },
             "restrictfilenames": True,
             "extract_flat": "in_playlist",
             "noplaylist": True,

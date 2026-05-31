@@ -21,13 +21,18 @@ In your Railway project → **Variables** tab, add:
 |----------|-------|----------|
 | `NO_FAST` | `true` | Legacy — safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes — makes server accessible externally |
-| `YT_COOKIES_B64` | *(see below)* | Yes — bypasses YouTube bot detection |
+| `YT_COOKIES_B64` | *(see below)* | Recommended — helps with account/age-gated YouTube videos |
 | `SANJUUNI_FPS` | `24` | No — lowers conversion time; use `0` to disable |
 | `VIDEO_FRAMES_AT_ONCE` | `1` | No — keep `1` to avoid ComputerCraft websocket message limits |
 
+The Docker image includes `bgutil-ytdlp-pot-provider` and configures yt-dlp to use generated PO tokens with the
+YouTube `mweb` client. That is the main workaround for Railway/shared-IP bot checks. Cookies can still help, but
+they may rotate and become invalid.
+
 ### Getting YouTube cookies
 
-YouTube blocks requests from server IPs unless you provide browser cookies.
+YouTube sometimes blocks server IPs even with PO tokens. Browser cookies can still help for videos that require an
+account or age check, but they may rotate and become invalid.
 
 1. Install the **"Get cookies.txt LOCALLY"** extension ([Chrome](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) / [Firefox](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/))
 2. Log into [youtube.com](https://youtube.com) in your browser
@@ -38,7 +43,7 @@ YouTube blocks requests from server IPs unless you provide browser cookies.
    ```
 5. Copy the output and paste it as the value of `YT_COOKIES_B64` in Railway
 
-> Cookies typically last 1–2 years. Re-export and update the variable if YouTube stops working.
+> If Railway logs say the provided cookies are no longer valid, re-export and update this variable.
 
 ## 4. Get your server URL
 
@@ -103,7 +108,7 @@ GIFs use native per-frame timing automatically. Press **Q** to stop.
 
 ## Troubleshooting
 
-**"Sign in to confirm you're not a bot"** — `YT_COOKIES_B64` is missing, expired, or wrong. Re-export cookies and update the Railway variable.
+**"Sign in to confirm you're not a bot"** — the built-in PO-token provider did not satisfy YouTube for that request, or your cookies are expired. Re-export cookies and update `YT_COOKIES_B64`; if it still fails, try a different video or wait because YouTube changes this frequently.
 
 **Audio only, no video** — requires sanjuuni (already in the Docker image). Make sure an Advanced Monitor is connected.
 

@@ -11,6 +11,7 @@ Moor Information about the servers can be seen on the [doc].
 
 This fork includes Railway deployment support, YouTube cookie support for yt-dlp, and a patched `youcube.lua`
 launcher that auto-routes video to a monitor when one is attached.
+It also ships a yt-dlp PO-token provider in the Docker image to reduce YouTube bot-check failures on Railway IPs.
 
 ## Requirements
 
@@ -42,9 +43,13 @@ Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these var
 | -------- | ----- | -------- |
 | `NO_FAST` | `true` | Legacy - safe mode is now the default |
 | `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
-| `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
+| `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Recommended - helps yt-dlp with account/age-gated videos |
 | `SANJUUNI_FPS` | `24` | No - output FPS before Sanjuuni conversion; use `0` to disable |
 | `VIDEO_FRAMES_AT_ONCE` | `1` | No - 32vid frames per websocket message; keep `1` for ComputerCraft limits |
+
+The Docker image also installs `bgutil-ytdlp-pot-provider` and configures yt-dlp to use the `mweb` client with
+generated PO tokens. That is the main workaround for Railway/shared-IP bot checks. Cookies are still useful, but
+they can rotate and stop working.
 
 To generate `YT_COOKIES_B64`, export a slim `youtube.com` cookies.txt from your browser and run:
 
@@ -99,6 +104,8 @@ Environment variables you can use to configure the server:
 | `FFMPEG_PATH`                 | `ffmpeg`   | Path to the FFmpeg executable                                                                                      |
 | `SANJUUNI_PATH`               | `sanjuuni` | Path to the Sanjuuni executable                                                                                    |
 | `YT_COOKIES_B64`              |            | Base64 encoded YouTube `cookies.txt` passed to yt-dlp.                                                             |
+| `BGUTIL_POT_PROVIDER_HOME`    | `/opt/bgutil-ytdlp-pot-provider/server` | Path to the built bgutil PO-token provider server files used by yt-dlp.                              |
+| `TOKEN_TTL`                   | `6`        | bgutil script token cache lifetime in hours.                                                                       |
 | `NO_COLOR`                    | `False`    | Disable colored output                                                                                             |
 | `LOGLEVEL`                    | `DEBUG`    | Python Log level of the main logger                                                                                |
 | `DISABLE_OPENCL`              | `False`    | Disables sanjuuni GPU acceleration                                                                                 |

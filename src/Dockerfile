@@ -26,6 +26,31 @@ RUN set -eux; \
   ./configure; \
   make
 
+FROM node:20-alpine AS pot-provider
+
+ENV BGUTIL_YTDLP_POT_PROVIDER_VERSION=1.3.1
+
+WORKDIR /opt/bgutil-ytdlp-pot-provider
+
+RUN set -eux; \
+  apk add --no-cache --update \
+  git \
+  python3 \
+  make \
+  g++ \
+  pkgconf \
+  cairo-dev \
+  pango-dev \
+  libjpeg-turbo-dev \
+  giflib-dev \
+  librsvg-dev \
+  pixman-dev; \
+  git clone --depth 1 --branch "${BGUTIL_YTDLP_POT_PROVIDER_VERSION}" https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git .; \
+  cd server; \
+  npm ci; \
+  npx tsc; \
+  npm prune --omit=dev
+
 FROM ghcr.io/commandcracker/alpine-pypy3.10-pip:3.20.1-pypy-7.3.14-pip-24.1.1 AS builder
 
 WORKDIR /
@@ -59,15 +84,26 @@ RUN set -eux; \
   libgomp \
   expat \
   # curl for HTTPS fetching (PyPy has no ssl module)
-  curl nodejs; \
+  curl nodejs \
+  # bgutil PO token provider runtime requirements
+  cairo \
+  pango \
+  libjpeg-turbo \
+  giflib \
+  librsvg \
+  pixman; \
   apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/v3.18/community libssl1.1=1.1.1u-r1 libcrypto1.1=1.1.1u-r1; \
   chown 1000:1000 /opt/server/
 
 COPY --from=builder /opt/pypy /opt/pypy
+COPY --from=pot-provider /opt/bgutil-ytdlp-pot-provider/server /opt/bgutil-ytdlp-pot-provider/server
 # add ffmpeg
 COPY --from=ffmpeg /usr/local /usr/local
 # add sanjuuni
 COPY --from=sanjuuni /sanjuuni/sanjuuni /usr/local/bin
+
+RUN set -eux; \
+  chown -R 1000:1000 /opt/bgutil-ytdlp-pot-provider /opt/server
 
 ENV \
   # Make sure, that the container is accessible from outside
