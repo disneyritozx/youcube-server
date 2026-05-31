@@ -51,6 +51,14 @@ FFMPEG_PATH = getenv("FFMPEG_PATH", "ffmpeg")
 SANJUUNI_PATH = getenv("SANJUUNI_PATH", "sanjuuni")
 DISABLE_OPENCL = bool(getenv("DISABLE_OPENCL"))
 
+VIDEO_FORMAT = (
+    "worst[ext=mp4][vcodec!=none][acodec!=none]/"
+    "worst[vcodec!=none][acodec!=none]/"
+    "worstvideo[ext=mp4]+worstaudio[ext=m4a]/"
+    "worstvideo+worstaudio"
+)
+AUDIO_FORMAT = "worstaudio[acodec!=none]/worst[acodec!=none]"
+
 # Write YouTube cookies from env var to a temp file for yt-dlp
 _cookies_file = None
 _cookies_b64 = getenv("YT_COOKIES_B64")
@@ -195,7 +203,9 @@ def download(
     # FIXME: Cleanup on Exception
     with TemporaryDirectory(prefix="youcube-") as temp_dir:
         yt_dl_options = {
-            "format": "worst[ext=mp4]/worst" if is_video else "worstaudio/worst",
+            "format": VIDEO_FORMAT if is_video else AUDIO_FORMAT,
+            "js_runtimes": {"node": {}},
+            "merge_output_format": "mp4",
             "outtmpl": join(temp_dir, "%(id)s.%(ext)s"),
             "default_search": "auto",
             "restrictfilenames": True,
