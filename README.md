@@ -9,6 +9,9 @@ YouCube has a some public servers, which you can use if you don't want to host y
 The client has the public servers set by default, so you can just run the client, and you're good to go. \
 Moor Information about the servers can be seen on the [doc].
 
+This fork includes Railway deployment support, YouTube cookie support for yt-dlp, and a patched `youcube.lua`
+launcher that auto-routes video to a monitor when one is attached.
+
 ## Requirements
 
 - [yt-dlp/FFmpeg] / [FFmpeg 5.1+]
@@ -29,6 +32,55 @@ pip install -r src/requirements.txt
 
 ```bash
 python src/youcube.py
+```
+
+## Railway deployment
+
+Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these variables in Railway:
+
+| Variable | Value | Required |
+| -------- | ----- | -------- |
+| `NO_FAST` | `true` | Yes - PyPy crashes with multiple workers |
+| `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
+| `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
+
+To generate `YT_COOKIES_B64`, export a slim `youtube.com` cookies.txt from your browser and run:
+
+```bash
+base64 -w 0 cookies.txt
+```
+
+Railway redeploys automatically when changes are pushed to `main`.
+
+## ComputerCraft client
+
+Configure the client to use your Railway WebSocket URL:
+
+```lua
+settings.set("youcube.server", "wss://youcube-server-production.up.railway.app")
+settings.save()
+```
+
+Install the upstream client first:
+
+```shell
+wget run https://raw.githubusercontent.com/CC-YouCube/installer/main/installer.lua
+```
+
+Then update only the launcher from this fork:
+
+```shell
+rm youcube 2>/dev/null; wget https://raw.githubusercontent.com/disneyritozx/youcube-server/main/youcube.lua youcube
+```
+
+The forked launcher uses the first attached `monitor` for video and falls back to the terminal when no monitor is
+found. It uses attached `speaker` peripherals for audio; if no speaker or tape drive is found, audio is disabled.
+
+Monitor video defaults to text scale `1` for better FPS. Use `0.5` for higher resolution but slower playback:
+
+```lua
+settings.set("youcube.monitor_scale", 1)
+settings.save()
 ```
 
 ## Environment variables
