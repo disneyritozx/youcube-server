@@ -27,6 +27,7 @@ from yc_utils import (
     is_video_already_downloaded,
     remove_ansi_escape_codes,
     remove_whitespace,
+    SANJUUNI_FPS,
 )
 
 # optional pip modules
@@ -97,20 +98,59 @@ def download_video(
             resp.send(dumps({"action": "status", "message": line})), loop
         )
 
-    returncode = run_with_live_output(
-        [
-            SANJUUNI_PATH,
-            "--width=" + str(width),
-            "--height=" + str(height),
-            "-i",
-            join(temp_dir, listdir(temp_dir)[0]),
-            "--raw",
-            "-o",
-            join(DATA_FOLDER, get_video_name(media_id, width, height)),
-            "--disable-opencl" if DISABLE_OPENCL else "",
-        ],
-        handler,
-    )
+    input_path = join(temp_dir, listdir(temp_dir)[0])
+    if SANJUUNI_FPS:
+        run_coroutine_threadsafe(
+            resp.send(
+                dumps(
+                    {
+                        "action": "status",
+                        "message": f"Reducing video to {SANJUUNI_FPS} fps ...",
+                    }
+                )
+            ),
+            loop,
+        )
+        filtered_path = join(temp_dir, "youcube_sanjuuni_input.mp4")
+        ffmpeg_code = run_with_live_output(
+            [
+                FFMPEG_PATH,
+                "-hide_banner",
+                "-loglevel",
+                "warning",
+                "-y",
+                "-i",
+                input_path,
+                "-an",
+                "-vf",
+                f"fps={SANJUUNI_FPS}",
+                "-c:v",
+                "mpeg4",
+                "-q:v",
+                "5",
+                filtered_path,
+            ],
+            handler,
+        )
+        if ffmpeg_code == 0:
+            input_path = filtered_path
+        else:
+            logger.warning("FFmpeg video prefilter exited with %s", ffmpeg_code)
+
+    cmd = [
+        SANJUUNI_PATH,
+        "--width=" + str(width),
+        "--height=" + str(height),
+        "-i",
+        input_path,
+        "--raw",
+        "-o",
+        join(DATA_FOLDER, get_video_name(media_id, width, height)),
+    ]
+    if DISABLE_OPENCL:
+        cmd.append("--disable-opencl")
+
+    returncode = run_with_live_output(cmd, handler)
 
     if returncode != 0:
         logger.warning("Sanjuuni exited with %s", returncode)

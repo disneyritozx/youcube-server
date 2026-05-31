@@ -6,7 +6,7 @@ Utils for string manipulation, data management etc.
 """
 
 # Built-in modules
-from os import mkdir
+from os import getenv, mkdir
 from os.path import abspath, dirname, exists, join
 from re import RegexFlag
 from re import compile as re_compile
@@ -65,9 +65,21 @@ AUDIO_FORMAT = "dfpwm"
 DATA_FOLDER = join(dirname(abspath(__file__)), "data")
 
 
+def _get_sanjuuni_fps() -> int:
+    try:
+        fps = int(getenv("SANJUUNI_FPS", "10"))
+    except ValueError:
+        return 10
+    return max(0, min(fps, 30))
+
+
+SANJUUNI_FPS = _get_sanjuuni_fps()
+
+
 def get_video_name(media_id: str, width: int, height: int) -> str:
     """Returns the file name of the requested video"""
-    return f"{media_id}({width}x{height}).{VIDEO_FORMAT}"
+    fps_suffix = f"@{SANJUUNI_FPS}fps" if SANJUUNI_FPS else ""
+    return f"{media_id}({width}x{height}{fps_suffix}).{VIDEO_FORMAT}"
 
 
 def get_audio_name(media_id: str) -> str:

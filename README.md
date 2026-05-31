@@ -43,6 +43,7 @@ Railway builds this repo with `railway.json` and `src/Dockerfile`. Set these var
 | `NO_FAST` | `true` | Yes - PyPy crashes with multiple workers |
 | `HOST` | `0.0.0.0` | Yes - makes the server externally reachable |
 | `YT_COOKIES_B64` | base64 encoded YouTube `cookies.txt` | Yes - helps yt-dlp avoid YouTube bot checks |
+| `SANJUUNI_FPS` | `10` | No - output FPS before Sanjuuni conversion; use `0` to disable |
 
 To generate `YT_COOKIES_B64`, export a slim `youtube.com` cookies.txt from your browser and run:
 
@@ -96,6 +97,7 @@ Environment variables you can use to configure the server:
 | `NO_COLOR`                    | `False`    | Disable colored output                                                                                             |
 | `LOGLEVEL`                    | `DEBUG`    | Python Log level of the main logger                                                                                |
 | `DISABLE_OPENCL`              | `False`    | Disables sanjuuni GPU acceleration                                                                                 |
+| `SANJUUNI_FPS`                | `10`       | Output FPS before Sanjuuni conversion. Lower is faster; `0` disables FPS reduction.                                |
 | `NO_FAST`                     | `False`    | Disable Sanic worker processes maximization                                                                        |
 | `SPOTIPY_CLIENT_ID`           |            | The Client ID from your [spotify application]                                                                      |
 | `SPOTIPY_CLIENT_SECRET`       |            | The Client Secret from your [spotify application]                                                                  |

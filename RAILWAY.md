@@ -22,6 +22,7 @@ In your Railway project → **Variables** tab, add:
 | `NO_FAST` | `true` | Yes — PyPy crashes with multiple workers |
 | `HOST` | `0.0.0.0` | Yes — makes server accessible externally |
 | `YT_COOKIES_B64` | *(see below)* | Yes — bypasses YouTube bot detection |
+| `SANJUUNI_FPS` | `10` | No — lowers conversion time; use `0` to disable |
 
 ### Getting YouTube cookies
 
