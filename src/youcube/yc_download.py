@@ -11,7 +11,9 @@ import atexit
 from asyncio import run_coroutine_threadsafe
 from os import getenv, listdir, unlink
 from os.path import abspath, dirname, join
-from tempfile import NamedTemporaryFile, TemporaryDirectory
+from shutil import rmtree
+from tempfile import NamedTemporaryFile, mkdtemp
+from threading import Thread
 
 # Local modules
 from yc_colours import RESET, Foreground
@@ -23,6 +25,7 @@ from yc_utils import (
     create_data_folder_if_not_present,
     get_audio_name,
     get_video_name,
+    get_video_rendering_path,
     is_audio_already_downloaded,
     is_video_already_downloaded,
     remove_ansi_escape_codes,
@@ -160,6 +163,27 @@ def download_video(
         )
 
 
+def download_video_in_background(
+    temp_dir: str, media_id: str, resp: Websocket, loop, width: int, height: int
+):
+    """Starts video conversion without blocking the media response"""
+    rendering_path = get_video_rendering_path(media_id, width, height)
+    with open(rendering_path, "w", encoding="utf-8"):
+        pass
+
+    def worker():
+        try:
+            download_video(temp_dir, media_id, resp, loop, width, height)
+        finally:
+            try:
+                unlink(rendering_path)
+            except FileNotFoundError:
+                pass
+            rmtree(temp_dir, ignore_errors=True)
+
+    Thread(target=worker, daemon=True).start()
+
+
 def download_audio(temp_dir: str, media_id: str, resp: Websocket, loop):
     """
     Converts the downloaded audio to dfpwm
@@ -241,7 +265,9 @@ def download(
             )
 
     # FIXME: Cleanup on Exception
-    with TemporaryDirectory(prefix="youcube-") as temp_dir:
+    temp_dir = mkdtemp(prefix="youcube-")
+    cleanup_temp_dir = True
+    try:
         yt_dl_options = {
             "format": VIDEO_FORMAT if is_video else AUDIO_FORMAT,
             "js_runtimes": {"node": {}},
@@ -334,7 +360,11 @@ def download(
             download_audio(temp_dir, media_id, resp, loop)
 
         if not video_downloaded and is_video:
-            download_video(temp_dir, media_id, resp, loop, width, height)
+            download_video_in_background(temp_dir, media_id, resp, loop, width, height)
+            cleanup_temp_dir = False
+    finally:
+        if cleanup_temp_dir:
+            rmtree(temp_dir, ignore_errors=True)
 
     out = {
         "action": "media",

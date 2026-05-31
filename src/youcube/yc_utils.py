@@ -92,6 +92,11 @@ def get_video_path(media_id: str, width: int, height: int) -> str:
     return join(DATA_FOLDER, get_video_name(media_id, width, height))
 
 
+def get_video_rendering_path(media_id: str, width: int, height: int) -> str:
+    """Returns the path of the marker for a video currently being rendered"""
+    return get_video_path(media_id, width, height) + ".rendering"
+
+
 def get_audio_path(media_id: str) -> str:
     """Returns the relative path to the requested audio"""
     return join(DATA_FOLDER, get_audio_name(media_id))

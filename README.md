@@ -85,6 +85,9 @@ settings.set("youcube.monitor_scale", 1)
 settings.save()
 ```
 
+Video conversion runs in the background after media download. Playback can begin while Sanjuuni is still rendering
+later 32vid frames.
+
 ## Environment variables
 
 Environment variables you can use to configure the server:

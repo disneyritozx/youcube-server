@@ -7,6 +7,7 @@ YouCube Server
 
 # built-in modules
 from asyncio import get_event_loop
+from asyncio import sleep as asyncio_sleep
 from base64 import b64encode
 from datetime import datetime
 from multiprocessing import Manager
@@ -47,7 +48,13 @@ from yc_image import convert_image
 from yc_logging import NO_COLOR, setup_logging
 from yc_magic import run_function_in_thread_from_async_function
 from yc_spotify import SpotifyURLProcessor
-from yc_utils import cap_width_and_height, get_audio_name, get_video_name, is_save
+from yc_utils import (
+    cap_width_and_height,
+    get_audio_name,
+    get_video_name,
+    get_video_rendering_path,
+    is_save,
+)
 
 VERSION = "0.0.0-poc.1.0.2"
 API_VERSION = "0.0.0-poc.1.0.0"  # https://commandcracker.github.io/YouCube/
@@ -141,13 +148,30 @@ logger = setup_logging()
 # TODO: change sanic logging format
 
 
-async def get_vid(vid_file: str, tracker: int) -> List[str]:
+async def get_vid(vid_file: str, tracker: int, rendering_file: str = None) -> List[str]:
     """Returns given line of 32vid file"""
-    async with await open_async(file=vid_file, mode="r", encoding="utf-8") as file:
-        await file.seek(tracker)
-        lines = []
-        for _unused in range(FRAMES_AT_ONCE):
-            lines.append((await file.readline())[:-1])  # remove \n
+    lines = []
+    current_tracker = tracker
+    for _unused in range(FRAMES_AT_ONCE):
+        while True:
+            if exists(vid_file):
+                async with await open_async(
+                    file=vid_file, mode="r", encoding="utf-8"
+                ) as file:
+                    await file.seek(current_tracker)
+                    line = (await file.readline())[:-1]  # remove \n
+                    if line or not rendering_file or not exists(rendering_file):
+                        break
+            elif not rendering_file or not exists(rendering_file):
+                line = ""
+                break
+
+            await asyncio_sleep(0.25)
+
+        lines.append(line)
+        if not line:
+            break
+        current_tracker += len(line) + 1
 
     return lines
 
@@ -283,10 +307,14 @@ class Actions:
         if is_save(media_id):
             file_name = get_video_name(message.get("id"), width, height)
             file = join(DATA_FOLDER, file_name)
+            rendering_file = get_video_rendering_path(message.get("id"), width, height)
 
             request.app.shared_ctx.data[file_name] = datetime.now()
 
-            return {"action": "vid", "lines": await get_vid(file, tracker)}
+            return {
+                "action": "vid",
+                "lines": await get_vid(file, tracker, rendering_file),
+            }
 
         return {"action": "error", "message": "You dare not use special Characters"}
 
