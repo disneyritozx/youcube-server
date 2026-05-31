@@ -58,6 +58,12 @@ settings.save()
 wget run https://raw.githubusercontent.com/CC-YouCube/installer/main/installer.lua
 ```
 
+To update only the YouCube launcher from this fork:
+
+```
+rm youcube 2>/dev/null; wget https://raw.githubusercontent.com/disneyritozx/youcube-server/main/youcube.lua youcube
+```
+
 ## 7. Play
 
 ```
