@@ -5,7 +5,8 @@ from subprocess import run, PIPE
 from typing import List
 from urllib.parse import urlparse
 
-import requests as _requests
+import re
+from subprocess import run as _run
 
 CC_COLORS = [
     (240, 240, 240), (242, 178, 51),  (229, 127, 216), (153, 178, 242),
@@ -51,23 +52,41 @@ def validate_url(url: str) -> None:
 
 
 def _fetch(url: str, max_redirects: int = 5) -> bytes:
-    """Fetch URL with manual redirect validation — ffmpeg never touches the network."""
+    """Fetch URL via curl with per-hop SSRF validation — ffmpeg never touches the network."""
     for _ in range(max_redirects):
-        validate_url(url)  # re-validate every hop to catch open-redirect to private IP
-        resp = _requests.get(url, allow_redirects=False, timeout=30, stream=True)
-        if resp.status_code in (301, 302, 303, 307, 308):
-            location = resp.headers.get("Location", "")
-            if not location:
+        validate_url(url)
+        result = _run(
+            [
+                "curl", "-sS",
+                "--max-redirs", "0",       # never follow redirects automatically
+                "-D", "/dev/stderr",       # dump response headers to stderr
+                "-o", "/dev/stdout",       # body to stdout
+                "--connect-timeout", "10",
+                "--max-time", "30",
+                "--max-filesize", str(MAX_DOWNLOAD),
+                url,
+            ],
+            stdout=PIPE, stderr=PIPE, timeout=35,
+        )
+        headers = result.stderr.decode("utf-8", errors="replace")
+        status_match = re.search(r"HTTP/\S+ (\d+)", headers)
+        status = int(status_match.group(1)) if status_match else 0
+
+        if status in (301, 302, 303, 307, 308):
+            loc = re.search(r"(?i)^location:\s*(\S+)", headers, re.MULTILINE)
+            if not loc:
                 raise ValueError("redirect with no Location header")
-            url = location
+            url = loc.group(1).strip()
             continue
-        resp.raise_for_status()
-        data = b""
-        for chunk in resp.iter_content(chunk_size=65536):
-            data += chunk
-            if len(data) > MAX_DOWNLOAD:
-                raise ValueError("response too large (max 50 MB)")
-        return data
+
+        if result.returncode != 0 or status >= 400:
+            raise ValueError("fetch failed")
+
+        if len(result.stdout) > MAX_DOWNLOAD:
+            raise ValueError("response too large (max 50 MB)")
+
+        return result.stdout
+
     raise ValueError("too many redirects")
 
 

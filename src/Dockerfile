@@ -57,7 +57,9 @@ RUN set -eux; \
   libstdc++ \
   ca-certificates \
   libgomp \
-  expat; \
+  expat \
+  # curl for HTTPS fetching (PyPy has no ssl module)
+  curl; \
   apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/v3.18/community libssl1.1=1.1.1u-r1 libcrypto1.1=1.1.1u-r1; \
   chown 1000:1000 /opt/server/
 
