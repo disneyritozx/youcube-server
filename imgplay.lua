@@ -41,7 +41,6 @@ if display ~= term and display.setTextScale then
 end
 
 local dw, dh = display.getSize()
--- half-block: each char row covers 2 pixel rows
 local px_w, px_h = dw, dh
 
 local server = settings.get("youcube.server") or "wss://youcube-server-production.up.railway.app"
@@ -53,16 +52,6 @@ local function urlencode(s)
     end)
 end
 
-local color_map = {
-    ["0"]=colors.white,    ["1"]=colors.orange,
-    ["2"]=colors.magenta,  ["3"]=colors.lightBlue,
-    ["4"]=colors.yellow,   ["5"]=colors.lime,
-    ["6"]=colors.pink,     ["7"]=colors.gray,
-    ["8"]=colors.lightGray,["9"]=colors.cyan,
-    ["a"]=colors.purple,   ["b"]=colors.blue,
-    ["c"]=colors.brown,    ["d"]=colors.green,
-    ["e"]=colors.red,      ["f"]=colors.black,
-}
 
 local function fetch(url)
     local res, err = http.get(
@@ -113,39 +102,42 @@ end
 print("Press Q to stop.")
 sleep(1.5)
 
-local function draw(surface, frame)
-    for y, row in ipairs(frame) do
-        if y > dh then break end
-        for x = 1, math.min(#row, dw) do
-            local c = color_map[row:sub(x,x)]
-            if c then
-                surface.setCursorPos(x, y)
-                surface.setBackgroundColor(c)
-                surface.write(" ")
-            end
-        end
+local function draw(surface, frame, prev)
+    for y = 1, math.min(#frame, dh) do
+        local row = frame[y]
+        if prev and prev[y] == row then goto continue end
+        local bg = row:sub(1, dw)
+        if #bg < dw then bg = bg .. string.rep("f", dw - #bg) end
+        local n = #bg
+        surface.setCursorPos(1, y)
+        surface.blit(string.rep(" ", n), string.rep("f", n), bg)
+        ::continue::
     end
 end
 
 local running = true
 local is_slideshow = #all_frames > 1
+local MIN_FRAME_SLEEP = 0.05
 
 local function play()
+    if display.setCursorBlink then display.setCursorBlink(false) end
     repeat
         for _, frames in ipairs(all_frames) do
             if not running then return end
             local fi = 1
             local is_gif = #frames > 1
             local start = os.clock()
+            local prev = nil
             while running do
-                draw(display, frames[fi])
+                draw(display, frames[fi], prev)
+                prev = frames[fi]
                 if is_gif then
                     fi = (fi % #frames) + 1
-                    sleep(1/fps)
+                    sleep(math.max(1/fps, MIN_FRAME_SLEEP))
                     if is_slideshow and (os.clock()-start) >= delay then break end
                 else
                     if is_slideshow then sleep(delay); break
-                    else sleep(0.05) end
+                    else while running do sleep(0.5) end end
                 end
             end
         end
