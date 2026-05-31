@@ -132,8 +132,27 @@ def _raw_to_nfp(raw: bytes, width: int, height: int) -> str:
     return "\n".join(lines)
 
 
+def _get_frame_durations(data: bytes) -> list:
+    probe = _run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "frame=pkt_duration_time",
+         "-of", "csv=p=0", "-i", "pipe:0"],
+        input=data, stdout=PIPE, stderr=PIPE, timeout=30,
+    )
+    durations = []
+    for line in probe.stdout.decode("utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if line and line != "N/A":
+            try:
+                durations.append(float(line))
+            except ValueError:
+                pass
+    return durations
+
+
 def convert_image(url: str, width: int, height: int) -> List[str]:
-    data = _fetch(url)  # we fetch; ffmpeg reads from stdin only
+    data = _fetch(url)
+    durations = _get_frame_durations(data)
     result = run(
         [
             "ffmpeg", "-i", "pipe:0",
@@ -146,11 +165,15 @@ def convert_image(url: str, width: int, height: int) -> List[str]:
     if not raw:
         raise ValueError("unsupported format")
     frame_size = width * height * 3
-    frames = [
+    nfp_frames = [
         _raw_to_nfp(raw[i: i + frame_size], width, height)
         for i in range(0, len(raw), frame_size)
         if len(raw[i: i + frame_size]) == frame_size
     ]
-    if not frames:
+    if not nfp_frames:
         raise ValueError("no frames decoded")
+    frames = []
+    for i, nfp in enumerate(nfp_frames):
+        delay = durations[i] if i < len(durations) and durations[i] > 0 else 0.1
+        frames.append(f"DELAY:{delay:.4f}\n{nfp}")
     return frames

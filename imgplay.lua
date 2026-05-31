@@ -2,12 +2,12 @@
 -- Single image:  imgplay <url> [--fps N]
 -- Slideshow:     imgplay <url1> <url2> ... [--delay N] [--fps N] [--loop]
 -- Options:
---   --fps N      GIF playback frame rate (default 10)
+--   --fps N      override GIF frame rate (default: use native delay)
 --   --delay N    seconds between slides (default 5)
 --   --loop       repeat slideshow forever until Q
 --   --monitor S  use monitor on side S (default: auto-detect)
 
-local args, urls, fps, delay, loop_slides, mon_side = {...}, {}, 10, 5, false, nil
+local args, urls, fps, delay, loop_slides, mon_side = {...}, {}, 0, 5, false, nil
 
 local i = 1
 while i <= #args do
@@ -65,10 +65,15 @@ local function fetch(url)
     local frames = {}
     for frame in (data .. "\n---\n"):gmatch("(.-)\n%-%-%-\n") do
         local rows = {}
+        local frame_delay = 0.1
         for row in (frame .. "\n"):gmatch("([^\n]*)\n") do
-            if #row > 0 then rows[#rows+1] = row end
+            if row:sub(1,6) == "DELAY:" then
+                frame_delay = tonumber(row:sub(7)) or 0.1
+            elseif #row > 0 then
+                rows[#rows+1] = row
+            end
         end
-        if #rows > 0 then frames[#frames+1] = rows end
+        if #rows > 0 then frames[#frames+1] = {delay=frame_delay, rows=rows} end
     end
     return #frames > 0 and frames or nil, "no frames decoded"
 end
@@ -102,10 +107,10 @@ end
 print("Press Q to stop.")
 sleep(1.5)
 
-local function draw(surface, frame, prev)
-    for y = 1, math.min(#frame, dh) do
-        local row = frame[y]
-        if prev and prev[y] == row then goto continue end
+local function draw(surface, rows, prev_rows)
+    for y = 1, math.min(#rows, dh) do
+        local row = rows[y]
+        if prev_rows and prev_rows[y] == row then goto continue end
         local bg = row:sub(1, dw)
         if #bg < dw then bg = bg .. string.rep("f", dw - #bg) end
         local n = #bg
@@ -127,13 +132,16 @@ local function play()
             local fi = 1
             local is_gif = #frames > 1
             local start = os.clock()
-            local prev = nil
+            local prev_rows = nil
             while running do
-                draw(display, frames[fi], prev)
-                prev = frames[fi]
+                local frame = frames[fi]
+                draw(display, frame.rows, prev_rows)
+                prev_rows = frame.rows
                 if is_gif then
+                    local frame_delay = fps > 0 and (1/fps) or frame.delay
+                    frame_delay = math.max(frame_delay, MIN_FRAME_SLEEP)
                     fi = (fi % #frames) + 1
-                    sleep(math.max(1/fps, MIN_FRAME_SLEEP))
+                    sleep(frame_delay)
                     if is_slideshow and (os.clock()-start) >= delay then break end
                 else
                     if is_slideshow then sleep(delay); break
