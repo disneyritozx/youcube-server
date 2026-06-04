@@ -3,7 +3,7 @@ import ipaddress
 import socket
 from subprocess import run, PIPE
 from typing import List
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import re
 from subprocess import run as _run
@@ -18,6 +18,11 @@ CC_COLORS = [
 HEX = "0123456789abcdef"
 
 MAX_DOWNLOAD = 50 * 1024 * 1024  # 50 MB
+
+
+class ImageFetchError(ValueError):
+    """Raised when a valid image URL cannot be downloaded."""
+
 
 def _is_blocked(addr: ipaddress._BaseAddress) -> bool:
     # Normalize IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1) before checking
@@ -69,25 +74,31 @@ def _fetch(url: str, max_redirects: int = 5) -> bytes:
             stdout=PIPE, stderr=PIPE, timeout=35,
         )
         headers = result.stderr.decode("utf-8", errors="replace")
-        status_match = re.search(r"HTTP/\S+ (\d+)", headers)
-        status = int(status_match.group(1)) if status_match else 0
+        status_matches = re.findall(r"HTTP/\S+ (\d+)", headers)
+        status = int(status_matches[-1]) if status_matches else 0
 
         if status in (301, 302, 303, 307, 308):
             loc = re.search(r"(?i)^location:\s*(\S+)", headers, re.MULTILINE)
             if not loc:
-                raise ValueError("redirect with no Location header")
-            url = loc.group(1).strip()
+                raise ImageFetchError("redirect with no Location header")
+            url = urljoin(url, loc.group(1).strip())
             continue
 
-        if result.returncode != 0 or status >= 400:
-            raise ValueError("fetch failed")
+        if status >= 400:
+            raise ImageFetchError(f"upstream image returned HTTP {status}")
+        if result.returncode != 0:
+            raise ImageFetchError(
+                f"image download failed (curl exit {result.returncode})"
+            )
+        if status == 0:
+            raise ImageFetchError("image download returned no HTTP status")
 
         if len(result.stdout) > MAX_DOWNLOAD:
             raise ValueError("response too large (max 50 MB)")
 
         return result.stdout
 
-    raise ValueError("too many redirects")
+    raise ImageFetchError("too many redirects")
 
 
 def _kmeans(pixels: list, k: int = 16, max_iter: int = 6) -> list:

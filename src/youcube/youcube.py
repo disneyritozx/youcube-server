@@ -43,7 +43,7 @@ from spotipy.client import Spotify
 # local modules
 from yc_colours import RESET, Foreground
 from yc_download import DATA_FOLDER, FFMPEG_PATH, SANJUUNI_PATH, download
-from yc_image import convert_image
+from yc_image import ImageFetchError, convert_image
 from yc_logging import NO_COLOR, setup_logging
 from yc_magic import run_function_in_thread_from_async_function
 from yc_spotify import SpotifyURLProcessor
@@ -423,6 +423,8 @@ async def image_route(request: Request):
             convert_image, url, width, height
         )
         return text("\n---\n".join(frames))
+    except ImageFetchError as exc:
+        return text(str(exc), status=502)
     except ValueError as exc:
         return text(str(exc), status=400)
     except Exception as exc:
